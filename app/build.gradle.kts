@@ -31,12 +31,6 @@ android {
                 storePassword = System.getenv("SIGNING_STORE_PASSWORD")
                 keyAlias = System.getenv("SIGNING_KEY_ALIAS")
                 keyPassword = System.getenv("SIGNING_KEY_PASSWORD")
-            } else {
-                val debug = getByName("debug")
-                storeFile = debug.storeFile
-                storePassword = debug.storePassword
-                keyAlias = debug.keyAlias
-                keyPassword = debug.keyPassword
             }
         }
     }
@@ -45,7 +39,11 @@ android {
         release {
             isMinifyEnabled = false
             isShrinkResources = false
-            signingConfig = signingConfigs.getByName("release")
+            // Leave the variant unsigned when no release keystore is configured.
+            signingConfig = signingConfigs.getByName("release").takeIf {
+                !System.getenv("SIGNING_STORE_FILE").isNullOrBlank() &&
+                    file(System.getenv("SIGNING_STORE_FILE")).exists()
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -92,4 +90,5 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
+    implementation("io.github.sceneview:sceneview:2.2.1")
 }

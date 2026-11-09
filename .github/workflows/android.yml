@@ -47,16 +47,16 @@ jobs:
           if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
             test -n "$ANDROID_KEYSTORE_PASSWORD" && test -n "$ANDROID_KEY_ALIAS" && test -n "$ANDROID_KEY_PASSWORD"
             printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/living-pet-release.jks"
-            echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/living-pet-release.jks" >> "$GITHUB_ENV"
+            echo "SIGNING_STORE_FILE=$RUNNER_TEMP/living-pet-release.jks" >> "$GITHUB_ENV"
           else
             echo "Signing secrets are not set; release APK will be unsigned and suitable only for inspection."
           fi
 
       - name: Build debug and release APKs
         env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: gradle --no-daemon :app:assembleDebug :app:assembleRelease -PbuildVersionCode=${{ github.run_number }} -PbuildVersionName=0.1.${{ github.run_number }}
 
       - name: Upload APKs for this push
