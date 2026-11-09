@@ -1,6 +1,7 @@
 package com.maysk.cloner.ui.screens
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
@@ -61,7 +62,7 @@ fun SettingsScreen() {
             Spacer(Modifier.size(16.dp))
             Text("Акцент", color = c.text, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.size(10.dp))
-            Row(Modifier.fillMaxWidth().horizontalScroll()) {
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                 AccentPalette.forEach { color ->
                     val sel = s.accent == color
                     Box(
@@ -97,6 +98,3 @@ fun SettingsScreen() {
         },
     )
 }
-
-@Composable
-private fun Modifier.horizontalScroll() = this.then(androidx.compose.foundation.horizontalScroll(androidx.compose.foundation.rememberScrollState()))

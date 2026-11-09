@@ -65,7 +65,7 @@ fun CloneCardScreen(cloneId: String) {
                         Text(clone.appLabel, color = c.text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(clone.packageName, color = c.textDim, style = MaterialTheme.typography.bodySmall)
                         Spacer(Modifier.size(6.dp))
-                        ModeBadge(clone.googleMode)
+                        MethodBadge(clone.method)
                     }
                 }
             }
