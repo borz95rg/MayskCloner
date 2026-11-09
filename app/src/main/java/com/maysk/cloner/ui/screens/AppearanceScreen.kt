@@ -25,20 +25,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.maysk.cloner.data.CloneProfile
-import com.maysk.cloner.data.LabelStyle
+import com.maysk.cloner.data.CloneManager
 import com.maysk.cloner.ui.AppIcon
 import com.maysk.cloner.ui.LocalActions
 import com.maysk.cloner.ui.SwitchRow
-import com.maysk.design.ChoiceChipRow
 import com.maysk.design.GlassCard
 import com.maysk.design.GradientButton
 import com.maysk.design.LocalMaysk
 import com.maysk.design.TopBar
+import androidx.compose.ui.platform.LocalContext
 
 @Composable
 fun AppearanceScreen(cloneId: String) {
     val a = LocalActions.current
     val c = LocalMaysk.current
+    val context = LocalContext.current
     val clones by a.container.settings.clones.collectAsState()
     val clone = clones.firstOrNull { it.cloneId == cloneId } ?: run { a.nav.pop(); return }
     var name by remember { mutableStateOf(clone.cloneName) }
@@ -53,42 +54,31 @@ fun AppearanceScreen(cloneId: String) {
                     AppIcon(clone.packageName, 56.dp, clone.appLabel)
                     Spacer(Modifier.width(16.dp))
                     Column {
-                        Text("Иконка клона", color = c.text, style = MaterialTheme.typography.titleMedium)
-                        Text("Берётся из исходного приложения", color = c.textDim, style = MaterialTheme.typography.bodySmall)
+                        Text("Приложение в профиле", color = c.text, style = MaterialTheme.typography.titleMedium)
+                        Text("Системная копия зависит от функций телефона", color = c.textDim, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
             Spacer(Modifier.size(18.dp))
-            Text("Название клона", color = c.text, style = MaterialTheme.typography.titleMedium)
+            Text("Название профиля", color = c.text, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.size(8.dp))
             OutlinedTextField(
                 value = name, onValueChange = { name = it }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.size(18.dp))
-            Text("Способ клонирования", color = c.text, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.size(10.dp))
-            ChoiceChipRow(
-                com.maysk.cloner.data.CloneMethod.entries.map { it.title },
-                com.maysk.cloner.data.CloneMethod.entries.indexOf(clone.method),
-                { edit { cl -> cl.copy(method = com.maysk.cloner.data.CloneMethod.entries[it]) } },
-            )
-            Spacer(Modifier.size(6.dp))
-            Text(clone.method.hint, color = c.textDim, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.size(18.dp))
-            Text("Стиль ярлыка", color = c.text, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.size(10.dp))
-            ChoiceChipRow(
-                LabelStyle.entries.map { it.title },
-                LabelStyle.entries.indexOf(clone.labelStyle),
-                { edit { cl -> cl.copy(labelStyle = LabelStyle.entries[it]) } },
-            )
-            Spacer(Modifier.size(16.dp))
-            SwitchRow(Icons.Rounded.Home, "Добавить на рабочий стол", null, checked = clone.addToHome) { v -> edit { it.copy(addToHome = v) } }
+            SwitchRow(Icons.Rounded.Home, "Создать ярлык при сохранении", "Ярлык запускает исходное приложение", checked = clone.addToHome) { v -> edit { it.copy(addToHome = v) } }
             Spacer(Modifier.size(20.dp))
             GradientButton("Сохранить", Modifier.fillMaxWidth()) {
-                edit { it.copy(cloneName = name.trim().ifBlank { clone.appLabel }) }
-                a.toast("Сохранено")
+                val savedName = name.trim().ifBlank { clone.appLabel }
+                edit { it.copy(cloneName = savedName) }
+                val shortcutCreated = !clone.addToHome || CloneManager.createShortcut(context, clone.packageName, savedName)
+                val message = when {
+                    !clone.addToHome -> "Профиль сохранён"
+                    shortcutCreated -> "Профиль сохранён. Подтвердите создание ярлыка"
+                    else -> "Профиль сохранён, но ярлык не создан"
+                }
+                a.toast(message)
                 a.nav.pop()
             }
             Spacer(Modifier.size(24.dp))

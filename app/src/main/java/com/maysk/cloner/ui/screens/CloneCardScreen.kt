@@ -66,7 +66,7 @@ fun CloneCardScreen(cloneId: String) {
                         Text(clone.appLabel, color = c.text, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                         Text(clone.packageName, color = c.textDim, style = MaterialTheme.typography.bodySmall)
                         Spacer(Modifier.size(6.dp))
-                        MethodBadge(clone.method)
+                        Text("Профиль приложения", color = c.textDim, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -85,7 +85,7 @@ fun CloneCardScreen(cloneId: String) {
                 if (!CloneManager.launch(context, clone.packageName)) a.toast("Приложение не установлено")
             }
             Spacer(Modifier.height(10.dp))
-            NavRow(Icons.Rounded.ContentCopy, "Клонировать (встроенное)") {
+            NavRow(Icons.Rounded.ContentCopy, "Открыть системное клонирование") {
                 when (CloneManager.openSystemClone(context, clone.packageName)) {
                     CloneManager.OpenResult.OPENED_CLONE_SETTINGS -> a.toast("Найдите «${clone.appLabel}» в списке и включите клон")
                     CloneManager.OpenResult.OPENED_APP_INFO -> a.toast("Откройте пункт клонирования в «О приложении»")

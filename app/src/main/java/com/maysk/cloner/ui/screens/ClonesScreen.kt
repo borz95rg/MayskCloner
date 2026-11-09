@@ -12,13 +12,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Bolt
-import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.GridView
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,11 +25,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.maysk.cloner.data.CloneMethod
 import com.maysk.cloner.data.CloneProfile
 import com.maysk.cloner.ui.AppIcon
 import com.maysk.cloner.ui.LocalActions
@@ -51,12 +45,12 @@ fun ClonesScreen() {
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            TopBar("Мои клоны", subtitle = "${clones.size} профилей")
+            TopBar("Мои профили", subtitle = "${clones.size} приложений")
             if (clones.isEmpty()) {
                 EmptyState(
-                    Icons.Rounded.GridView, "Пока нет клонов",
-                    "Добавьте приложение и настройте для него Google и авторизацию отдельно от остальных.",
-                    action = "Создать клон", onAction = { a.nav.push(Route.PickApp) },
+                    Icons.Rounded.GridView, "Пока нет профилей",
+                    "Добавьте приложение, чтобы быстро открыть его системное клонирование или создать ярлык запуска.",
+                    action = "Добавить приложение", onAction = { a.nav.push(Route.PickApp) },
                 )
             } else {
                 LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)) {
@@ -88,26 +82,8 @@ private fun CloneRow(clone: CloneProfile, onClick: () -> Unit) {
                 Text(clone.cloneName.ifBlank { clone.appLabel }, color = c.text, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(clone.appLabel, color = c.textDim, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.size(4.dp))
-                MethodBadge(clone.method)
             }
         }
     }
 }
 
-@Composable
-fun MethodBadge(method: CloneMethod) {
-    val c = LocalMaysk.current
-    val (color, icon, label) = when (method) {
-        CloneMethod.SYSTEM -> Triple(c.accent, Icons.Rounded.Bolt, "Встроенное")
-        CloneMethod.WORK_PROFILE -> Triple(Color(0xFF22C55E), Icons.Rounded.CheckCircle, "Рабочий профиль")
-        CloneMethod.SHORTCUT -> Triple(c.textDim, Icons.Rounded.CheckCircle, "Ярлык")
-    }
-    Row(
-        Modifier.clip(RoundedCornerShape(50)).background(color.copy(alpha = 0.15f)).padding(horizontal = 10.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Icon(icon, null, tint = color, modifier = Modifier.size(14.dp))
-        Spacer(Modifier.size(5.dp))
-        Text(label, color = color, style = MaterialTheme.typography.labelSmall)
-    }
-}
