@@ -26,7 +26,7 @@ android {
     signingConfigs {
         create("release") {
             val storePath = System.getenv("SIGNING_STORE_FILE")
-            if (storePath != null && file(storePath).exists()) {
+            if (!storePath.isNullOrBlank() && file(storePath).exists()) {
                 storeFile = file(storePath)
                 storePassword = System.getenv("SIGNING_STORE_PASSWORD")
                 keyAlias = System.getenv("SIGNING_KEY_ALIAS")
