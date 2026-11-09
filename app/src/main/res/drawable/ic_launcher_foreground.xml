@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Знак Maysk App Cloner: две карточки (приложение и его клон), монограмма M и «+». -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M55,30 h16 a11,11 0 0 1 11,11 v22 a11,11 0 0 1 -11,11 h-16 a11,11 0 0 1 -11,-11 v-22 a11,11 0 0 1 11,-11 z"
+        android:strokeColor="#80A78BFA" android:strokeWidth="1.5">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="44" android:startY="30" android:endX="82" android:endY="74">
+                <item android:offset="0" android:color="#8C6D28D9"/>
+                <item android:offset="1" android:color="#8C4C1D95"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:pathData="M38,36 h18 a12,12 0 0 1 12,12 v24 a12,12 0 0 1 -12,12 h-18 a12,12 0 0 1 -12,-12 v-24 a12,12 0 0 1 12,-12 z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:type="linear" android:startX="24" android:startY="34" android:endX="74" android:endY="86">
+                <item android:offset="0" android:color="#FFA78BFA"/>
+                <item android:offset="0.5" android:color="#FF8B5CF6"/>
+                <item android:offset="1" android:color="#FF6D28D9"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="5.4" android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M35,70 V50 L47,62 L59,50 V70"/>
+    <path android:fillColor="#FF22D3EE" android:pathData="M78,62 m-12,0 a12,12 0 1 0 24,0 a12,12 0 1 0 -24,0"/>
+    <path android:strokeColor="#FF04121A" android:strokeWidth="3.4" android:strokeLineCap="round"
+        android:pathData="M78,56 V68 M72,62 H84"/>
+</vector>
