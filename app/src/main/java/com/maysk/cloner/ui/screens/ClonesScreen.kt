@@ -65,7 +65,7 @@ fun ClonesScreen() {
             onClick = { a.nav.push(Route.PickApp) },
             containerColor = c.accent,
             modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp).navBar(),
-        ) { Icon(Icons.Rounded.Add, "Создать клон", tint = Color.White) }
+        ) { Icon(Icons.Rounded.Add, "Добавить приложение", tint = Color.White) }
     }
 }
 

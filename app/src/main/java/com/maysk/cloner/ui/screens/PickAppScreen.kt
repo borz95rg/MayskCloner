@@ -47,7 +47,7 @@ fun PickAppScreen() {
     val apps by produceState<List<InstalledApp>?>(null) { value = Apps.installed(context) }
 
     Column(Modifier.fillMaxSize()) {
-        TopBar("Выберите приложение", onBack = { a.nav.pop() })
+        TopBar("Добавить приложение", onBack = { a.nav.pop() })
         OutlinedTextField(
             value = query, onValueChange = { query = it },
             label = { Text("Поиск") }, singleLine = true,
@@ -66,7 +66,7 @@ fun PickAppScreen() {
                             val id = "clone_${System.currentTimeMillis()}"
                             val clone = CloneProfile(
                                 cloneId = id, packageName = app.packageName, appLabel = app.label,
-                                cloneName = "${app.label} Клон 1",
+                                cloneName = app.label,
                             )
                             a.container.settings.addClone(clone)
                             a.nav.pop()
@@ -93,6 +93,6 @@ private fun AppPickRow(app: InstalledApp, already: Boolean, onClick: () -> Unit)
             Text(app.label, color = c.text, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Medium)
             Text(app.packageName, color = c.textDim, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (already) Text("Добавлено", color = c.accent, style = MaterialTheme.typography.labelSmall)
+        if (already) Text("Есть профиль", color = c.accent, style = MaterialTheme.typography.labelSmall)
     }
 }

@@ -2,6 +2,8 @@ package com.maysk.cloner.update
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -17,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
+import java.security.MessageDigest
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -57,7 +60,15 @@ class UpdateManager(
         if (!settings.current.autoUpdateCheck || repo.isBlank()) return
         val last = prefs.getLong("last_check", 0)
         if (System.currentTimeMillis() - last < 6 * 3600_000L) {
-            // Покажем ранее найденное обновление, если оно всё ещё новее.
+            val cached = if (prefs.getString("latest_repo", null) == repo) {
+                runCatching { prefs.getString("latest_release", null)?.let { JSONObject(it) } }.getOrNull()
+            } else null
+            val info = cached?.let { json -> runCatching {
+                UpdateInfo(json.getString("versionName"), json.getInt("build"), json.optString("notes"), json.getString("apkUrl"), json.optLong("sizeBytes"))
+            }.getOrNull() }
+            if (info != null && info.build > currentBuild && !wasDismissedRecently(info.build)) {
+                _status.value = UpdateStatus.Available(info)
+            }
             return
         }
         check(silent = true)
@@ -74,8 +85,15 @@ class UpdateManager(
             val result = withContext(Dispatchers.IO) { runCatching { fetchLatest() } }
             prefs.edit().putLong("last_check", System.currentTimeMillis()).apply()
             result.onSuccess { info ->
+                if (info != null) prefs.edit()
+                    .putString("latest_repo", repo)
+                    .putString("latest_release", JSONObject().apply {
+                        put("versionName", info.versionName); put("build", info.build); put("notes", info.notes)
+                        put("apkUrl", info.apkUrl); put("sizeBytes", info.sizeBytes)
+                    }.toString()).apply()
+                else prefs.edit().remove("latest_repo").remove("latest_release").apply()
                 _status.value = when {
-                    info != null && info.build > currentBuild -> UpdateStatus.Available(info)
+                    info != null && info.build > currentBuild && !wasDismissedRecently(info.build) -> UpdateStatus.Available(info)
                     silent -> UpdateStatus.Idle
                     else -> UpdateStatus.UpToDate
                 }
@@ -85,7 +103,16 @@ class UpdateManager(
         }
     }
 
-    fun dismiss() { _status.value = UpdateStatus.Idle }
+    fun dismiss() {
+        val current = _status.value
+        if (current is UpdateStatus.Available) prefs.edit().putLong("dismissed_at_${current.info.build}", System.currentTimeMillis()).apply()
+        _status.value = UpdateStatus.Idle
+    }
+
+    private fun wasDismissedRecently(build: Int): Boolean {
+        val dismissedAt = prefs.getLong("dismissed_at_$build", 0L)
+        return dismissedAt > 0L && System.currentTimeMillis() - dismissedAt < 24 * 3600_000L
+    }
 
     private fun fetchLatest(): UpdateInfo? {
         val conn = URL("https://api.github.com/repos/$repo/releases/latest").openConnection() as HttpURLConnection
@@ -165,16 +192,51 @@ class UpdateManager(
                         }
                     }
                     conn.disconnect()
+                    if (out.length() == 0L || (info.sizeBytes > 0L && out.length() != info.sizeBytes)) {
+                        out.delete()
+                        throw IllegalStateException("Загружен неполный APK")
+                    }
+                    validateApk(out, info.build)
                     out
                 }
             }
             result.onSuccess { file ->
                 _status.value = UpdateStatus.ReadyToInstall(info, file)
-                install(file)
             }.onFailure {
                 _status.value = UpdateStatus.Error("Ошибка загрузки: ${it.message ?: "нет сети"}")
             }
         }
+    }
+
+    private fun validateApk(file: File, expectedBuild: Int) {
+        val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            PackageManager.GET_SIGNING_CERTIFICATES
+        } else {
+            @Suppress("DEPRECATION") PackageManager.GET_SIGNATURES
+        }
+        val downloaded = context.packageManager.getPackageArchiveInfo(file.absolutePath, flags)
+            ?: throw IllegalStateException("Файл не распознан как APK")
+        if (downloaded.packageName != context.packageName) {
+            throw IllegalStateException("APK предназначен для другого приложения")
+        }
+        val downloadedBuild = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) downloaded.longVersionCode else {
+            @Suppress("DEPRECATION") downloaded.versionCode.toLong()
+        }
+        if (downloadedBuild != expectedBuild.toLong()) throw IllegalStateException("Номер версии APK не совпадает с релизом")
+
+        val installed = context.packageManager.getPackageInfo(context.packageName, flags)
+        if (signerDigests(downloaded).isEmpty() || signerDigests(downloaded) != signerDigests(installed)) {
+            throw IllegalStateException("Подпись APK не совпадает с установленным приложением")
+        }
+    }
+
+    private fun signerDigests(info: PackageInfo): Set<String> {
+        val signatures = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.signingInfo?.apkContentsSigners else {
+            @Suppress("DEPRECATION") info.signatures
+        } ?: return emptySet()
+        return signatures.map { signature ->
+            MessageDigest.getInstance("SHA-256").digest(signature.toByteArray()).joinToString("") { byte -> "%02x".format(byte) }
+        }.toSet()
     }
 
     fun canInstallPackages(): Boolean =

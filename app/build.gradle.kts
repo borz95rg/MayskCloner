@@ -4,8 +4,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-// Номер сборки берётся из GitHub Actions (github.run_number), локально = 1.
-val buildNumber: Int = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toIntOrNull() ?: 1
+// Tagged releases use the version from v1.0.N; branch builds use GitHub's run number.
+val tagVersion = System.getenv("GITHUB_REF_NAME")?.takeIf { it.matches(Regex("v1\\.0\\.[1-9]\\d*")) }?.removePrefix("v")
+val buildNumber: Int = tagVersion?.substringAfterLast('.')?.toIntOrNull()
+    ?: (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toIntOrNull()
+    ?: 1
+val buildName = tagVersion ?: "1.0.$buildNumber"
 // Репозиторий, из которого приложение получает обновления (owner/repo). В Actions заполняется автоматически.
 val updateRepo: String = System.getenv("GITHUB_REPOSITORY") ?: ""
 
@@ -18,7 +22,7 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = buildNumber
-        versionName = "1.0.$buildNumber"
+        versionName = buildName
         buildConfigField("String", "UPDATE_REPO", "\"$updateRepo\"")
         vectorDrawables { useSupportLibrary = true }
     }
@@ -89,6 +93,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-process:2.8.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
     implementation("io.github.sceneview:sceneview:2.2.1")
 }

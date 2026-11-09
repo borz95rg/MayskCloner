@@ -65,14 +65,15 @@ object CloneManager {
         cloneSettingsCandidates().any { it.resolveActivity(context.packageManager) != null }
 
     /** Создать ярлык запуска приложения на рабочем столе (с именем клона). */
-    fun createShortcut(context: Context, packageName: String, label: String): Boolean {
+    fun createShortcut(context: Context, packageName: String, label: String, profileId: String = packageName): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
         val launch = context.packageManager.getLaunchIntentForPackage(packageName) ?: return false
         launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
         val sm = context.getSystemService(ShortcutManager::class.java) ?: return false
         if (!sm.isRequestPinShortcutSupported) return false
         val icon = appIcon(context, packageName)
-        val info = ShortcutInfo.Builder(context, "clone_${packageName}_${System.currentTimeMillis()}")
+        val id = "clone_${packageName}_${profileId.hashCode().toString(16)}"
+        val info = ShortcutInfo.Builder(context, id)
             .setShortLabel(label.ifBlank { packageName })
             .setIntent(launch.setAction(Intent.ACTION_MAIN))
             .apply { if (icon != null) setIcon(icon) }

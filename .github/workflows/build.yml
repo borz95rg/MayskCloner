@@ -1,17 +1,16 @@
-name: Build & Release APK
+name: Android build
 
-# Каждый push в main/master собирает подписанный APK и публикует его как GitHub Release.
-# Maysk App Cloner проверяет последний Release и предлагает обновиться.
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
+    tags: ['v1.0.*']
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: release
+  group: android-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -25,44 +24,85 @@ jobs:
         uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: 17
+          java-version: '17'
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
 
-      - name: Restore signing key (если секреты добавлены)
+      - name: Validate release tag
+        if: startsWith(github.ref, 'refs/tags/v1.0.')
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v1\.0\.[1-9][0-9]*$ ]]; then
+            echo "Use release tags in the form v1.0.N where N is a positive integer."
+            exit 1
+          fi
+
+      - name: Configure release signing
         id: signing
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           if [ -z "$KEYSTORE_BASE64" ]; then
-            echo "::warning::Секрет KEYSTORE_BASE64 не задан — соберу APK с отладочной подписью. Для обновлений «по воздуху» добавьте 4 секрета (см. README)."
             echo "have_key=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No release key configured; a signed debug APK will be uploaded for installation."
           else
-            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            test -n "$KEYSTORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+            test -s "$RUNNER_TEMP/release.jks"
+            echo "store_path=$RUNNER_TEMP/release.jks" >> "$GITHUB_OUTPUT"
             echo "have_key=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Build release APK
+      - name: Require a persistent key for tagged releases
+        if: startsWith(github.ref, 'refs/tags/v1.0.') && steps.signing.outputs.have_key != 'true'
+        run: |
+          echo "A tagged GitHub Release requires KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD secrets."
+          exit 1
+
+      - name: Build installable debug APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug --no-daemon --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MayskCloner-debug-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Build signed release APK
+        if: steps.signing.outputs.have_key == 'true'
         env:
-          SIGNING_STORE_FILE: ${{ steps.signing.outputs.have_key == 'true' && format('{0}/release.jks', runner.temp) || '' }}
+          SIGNING_STORE_FILE: ${{ steps.signing.outputs.store_path }}
           SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          chmod +x ./gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace
 
-      - name: Rename APK
+      - name: Upload signed release APK
+        if: steps.signing.outputs.have_key == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MayskCloner-release-${{ github.run_number }}
+          path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Prepare release asset
+        if: startsWith(github.ref, 'refs/tags/v1.0.')
         run: |
           mkdir -p out
-          cp app/build/outputs/apk/release/app-release.apk "out/MayskCloner-1.0.${{ github.run_number }}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "out/MayskCloner-${GITHUB_REF_NAME}.apk"
 
       - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v1.0.')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: Maysk App Cloner 1.0.${{ github.run_number }}
-          body: ${{ github.event.head_commit.message }}
+          name: Maysk App Cloner ${{ github.ref_name }}
+          generate_release_notes: true
           files: out/*.apk
-          make_latest: true

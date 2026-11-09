@@ -1,5 +1,9 @@
 package com.maysk.cloner.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
+import android.view.WindowManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -29,8 +33,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -54,9 +63,26 @@ import com.maysk.design.LocalMaysk
 @Composable
 fun AppRoot(container: AppContainer) {
     val settings by container.settings.settings.collectAsState()
+    val backgroundGeneration by container.backgroundGeneration.collectAsState()
     val dark = isSystemInDarkTheme()
     val colors = remember(settings, dark) { buildColors(settings, dark) }
     val nav = remember { Nav() }
+    var unlocked by remember { mutableStateOf(!container.settings.current.appLock) }
+    var lastBackgroundGeneration by remember { mutableStateOf(container.backgroundGeneration.value) }
+    val activity = LocalContext.current.activityOrNull()
+
+    LaunchedEffect(backgroundGeneration, settings.appLock) {
+        if (settings.appLock && backgroundGeneration > lastBackgroundGeneration) unlocked = false
+        lastBackgroundGeneration = backgroundGeneration
+        if (!settings.appLock) unlocked = true
+    }
+
+    SideEffect {
+        activity?.window?.let { window ->
+            if (settings.hideClones) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+    }
 
     val actions = remember {
         UiActions(
@@ -69,14 +95,28 @@ fun AppRoot(container: AppContainer) {
     ClonerTheme(settings, colors) {
         AppBackground {
             CompositionLocalProvider(LocalActions provides actions) {
-                Column(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f)) { RouteContent(nav.current) }
-                    if (nav.stack.isEmpty()) BottomNav(nav)
+                if (settings.appLock && !unlocked) {
+                    AppLockGate { pin ->
+                        val valid = container.settings.verifyPin(pin)
+                        if (valid) unlocked = true
+                        valid
+                    }
+                } else {
+                    Column(Modifier.fillMaxSize()) {
+                        Box(Modifier.weight(1f)) { RouteContent(nav.current) }
+                        if (nav.stack.isEmpty()) BottomNav(nav)
+                    }
+                    UpdateDialogs(container)
                 }
-                UpdateDialogs(container)
             }
         }
     }
+}
+
+private tailrec fun Context.activityOrNull(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.activityOrNull()
+    else -> null
 }
 
 @Composable
@@ -99,7 +139,7 @@ private fun BottomNav(nav: Nav) {
     val c = LocalMaysk.current
     val items = listOf(
         Triple("Главная", Icons.Rounded.Home, 0),
-        Triple("Клоны", Icons.Rounded.GridView, 1),
+        Triple("Профили", Icons.Rounded.GridView, 1),
         Triple("Резерв", Icons.Rounded.Backup, 2),
         Triple("Настройки", Icons.Rounded.Settings, 3),
     )

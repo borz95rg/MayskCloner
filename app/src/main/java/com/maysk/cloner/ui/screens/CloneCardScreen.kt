@@ -50,6 +50,7 @@ fun CloneCardScreen(cloneId: String) {
     val c = LocalMaysk.current
     val context = LocalContext.current
     val clones by a.container.settings.clones.collectAsState()
+    val appSettings by a.container.settings.settings.collectAsState()
     val clone = clones.firstOrNull { it.cloneId == cloneId } ?: run { a.nav.pop(); return }
     var confirmDelete by remember { mutableStateOf(false) }
     val installed = Apps.isInstalled(context, clone.packageName)
@@ -94,7 +95,7 @@ fun CloneCardScreen(cloneId: String) {
             }
             Spacer(Modifier.height(10.dp))
             NavRow(Icons.Rounded.AddToHomeScreen, "Ярлык на рабочий стол") {
-                val ok = CloneManager.createShortcut(context, clone.packageName, clone.cloneName.ifBlank { clone.appLabel })
+                val ok = CloneManager.createShortcut(context, clone.packageName, clone.cloneName.ifBlank { clone.appLabel }, clone.cloneId)
                 a.toast(if (ok) "Подтвердите добавление ярлыка" else "Не удалось создать ярлык")
             }
             Spacer(Modifier.height(10.dp))
@@ -102,7 +103,13 @@ fun CloneCardScreen(cloneId: String) {
             Spacer(Modifier.height(10.dp))
             NavRow(Icons.Rounded.Backup, "Резервная копия") { a.nav.selectTab(2) }
             Spacer(Modifier.height(10.dp))
-            NavRow(Icons.Rounded.Delete, "Удалить профиль", tint = Color(0xFFEF4444)) { confirmDelete = true }
+            NavRow(Icons.Rounded.Delete, "Удалить профиль", tint = Color(0xFFEF4444)) {
+                if (appSettings.confirmDelete) confirmDelete = true
+                else {
+                    a.container.settings.removeClone(cloneId)
+                    a.nav.pop()
+                }
+            }
             Spacer(Modifier.height(24.dp))
         }
     }

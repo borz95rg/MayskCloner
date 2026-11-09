@@ -47,7 +47,7 @@ fun AppearanceScreen(cloneId: String) {
     fun edit(transform: (CloneProfile) -> CloneProfile) = a.container.settings.updateClone(cloneId, transform)
 
     Column(Modifier.fillMaxSize()) {
-        TopBar("Оформление", onBack = { a.nav.pop() })
+        TopBar("Профиль и ярлык", onBack = { a.nav.pop() })
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
             GlassCard(Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -72,7 +72,7 @@ fun AppearanceScreen(cloneId: String) {
             GradientButton("Сохранить", Modifier.fillMaxWidth()) {
                 val savedName = name.trim().ifBlank { clone.appLabel }
                 edit { it.copy(cloneName = savedName) }
-                val shortcutCreated = !clone.addToHome || CloneManager.createShortcut(context, clone.packageName, savedName)
+                val shortcutCreated = !clone.addToHome || CloneManager.createShortcut(context, clone.packageName, savedName, clone.cloneId)
                 val message = when {
                     !clone.addToHome -> "Профиль сохранён"
                     shortcutCreated -> "Профиль сохранён. Подтвердите создание ярлыка"

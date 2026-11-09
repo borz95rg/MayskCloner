@@ -67,23 +67,23 @@ fun DashboardScreen() {
                 }
                 Spacer(Modifier.size(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Клонируйте приложения и игры", color = c.text, fontWeight = FontWeight.SemiBold)
+                    Text("Управляйте профилями приложений", color = c.text, fontWeight = FontWeight.SemiBold)
                     Text(
-                        if (hasSystem) "Встроенное клонирование телефона доступно" else "Добавляйте приложения и создавайте ярлыки клонов",
+                        if (hasSystem) "На телефоне найдена системная функция клонирования" else "Можно создавать ярлыки запуска приложений",
                         color = c.textDim, style = MaterialTheme.typography.bodySmall,
                     )
                 }
             }
         }
         Spacer(Modifier.height(12.dp))
-        GradientButton("Создать клон", Modifier.fillMaxWidth(), icon = Icons.Rounded.Add) { a.nav.selectTab(1); a.nav.push(Route.PickApp) }
+        GradientButton("Добавить приложение", Modifier.fillMaxWidth(), icon = Icons.Rounded.Add) { a.nav.selectTab(1); a.nav.push(Route.PickApp) }
 
         Spacer(Modifier.height(20.dp))
         Text("Быстрые функции", style = MaterialTheme.typography.titleMedium, color = c.text)
         Spacer(Modifier.height(10.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            QuickTile("Мои клоны", "${clones.size} профилей", Icons.Rounded.GridView, Modifier.weight(1f)) { a.nav.selectTab(1) }
-            QuickTile("Создать клон", "Быстро и легко", Icons.Rounded.Add, Modifier.weight(1f)) { a.nav.selectTab(1); a.nav.push(Route.PickApp) }
+            QuickTile("Мои профили", "${clones.size} приложений", Icons.Rounded.GridView, Modifier.weight(1f)) { a.nav.selectTab(1) }
+            QuickTile("Добавить приложение", "Профиль или ярлык", Icons.Rounded.Add, Modifier.weight(1f)) { a.nav.selectTab(1); a.nav.push(Route.PickApp) }
         }
         Spacer(Modifier.height(12.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
