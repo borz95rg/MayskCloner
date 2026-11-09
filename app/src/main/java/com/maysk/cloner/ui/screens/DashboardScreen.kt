@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,13 +48,14 @@ import com.maysk.design.LocalMaysk
 fun DashboardScreen() {
     val a = LocalActions.current
     val c = LocalMaysk.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     val clones by a.container.settings.clones.collectAsState()
-    val running by a.container.firewall.running.collectAsState()
+    val hasSystem = remember { com.maysk.cloner.data.CloneManager.hasSystemClone(context) }
 
     Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).statusBarsPadding().padding(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Maysk App Cloner", style = MaterialTheme.typography.titleLarge, color = c.text, modifier = Modifier.weight(1f))
-            Icon(Icons.Rounded.Shield, null, tint = if (running) c.accent else c.textDim)
+            Icon(Icons.Rounded.Shield, null, tint = if (hasSystem) c.accent else c.textDim)
         }
         Spacer(Modifier.height(16.dp))
 
@@ -67,7 +69,7 @@ fun DashboardScreen() {
                 Column(Modifier.weight(1f)) {
                     Text("Клонируйте приложения и игры", color = c.text, fontWeight = FontWeight.SemiBold)
                     Text(
-                        if (running) "Файрвол активен — Google-запросы ограничены" else "Управляйте Google и авторизацией для каждого клона",
+                        if (hasSystem) "Встроенное клонирование телефона доступно" else "Добавляйте приложения и создавайте ярлыки клонов",
                         color = c.textDim, style = MaterialTheme.typography.bodySmall,
                     )
                 }

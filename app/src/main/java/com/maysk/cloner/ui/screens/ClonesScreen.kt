@@ -33,8 +33,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.maysk.cloner.data.CloneGoogleSettings
-import com.maysk.cloner.engine.GoogleMode
+import com.maysk.cloner.data.CloneMethod
+import com.maysk.cloner.data.CloneProfile
 import com.maysk.cloner.ui.AppIcon
 import com.maysk.cloner.ui.LocalActions
 import com.maysk.cloner.ui.Route
@@ -78,7 +78,7 @@ fun ClonesScreen() {
 private fun Modifier.navBar() = this.then(Modifier)
 
 @Composable
-private fun CloneRow(clone: CloneGoogleSettings, onClick: () -> Unit) {
+private fun CloneRow(clone: CloneProfile, onClick: () -> Unit) {
     val c = LocalMaysk.current
     GlassCard(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -88,19 +88,19 @@ private fun CloneRow(clone: CloneGoogleSettings, onClick: () -> Unit) {
                 Text(clone.cloneName.ifBlank { clone.appLabel }, color = c.text, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(clone.appLabel, color = c.textDim, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.size(4.dp))
-                ModeBadge(clone.googleMode)
+                MethodBadge(clone.method)
             }
         }
     }
 }
 
 @Composable
-fun ModeBadge(mode: GoogleMode) {
+fun MethodBadge(method: CloneMethod) {
     val c = LocalMaysk.current
-    val (color, icon, label) = when (mode) {
-        GoogleMode.STANDARD -> Triple(c.textDim, Icons.Rounded.CheckCircle, "Стандартный")
-        GoogleMode.NO_AUTO_GOOGLE -> Triple(c.accent, Icons.Rounded.Bolt, "Без Google-запроса")
-        GoogleMode.COMPAT -> Triple(Color(0xFF22C55E), Icons.Rounded.CheckCircle, "Совместимость")
+    val (color, icon, label) = when (method) {
+        CloneMethod.SYSTEM -> Triple(c.accent, Icons.Rounded.Bolt, "Встроенное")
+        CloneMethod.WORK_PROFILE -> Triple(Color(0xFF22C55E), Icons.Rounded.CheckCircle, "Рабочий профиль")
+        CloneMethod.SHORTCUT -> Triple(c.textDim, Icons.Rounded.CheckCircle, "Ярлык")
     }
     Row(
         Modifier.clip(RoundedCornerShape(50)).background(color.copy(alpha = 0.15f)).padding(horizontal = 10.dp, vertical = 4.dp),

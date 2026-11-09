@@ -2,6 +2,7 @@ package com.maysk.cloner.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -40,10 +42,9 @@ import com.maysk.cloner.update.UpdateStatus
 import com.maysk.cloner.ui.screens.AboutScreen
 import com.maysk.cloner.ui.screens.AppearanceScreen
 import com.maysk.cloner.ui.screens.BackupScreen
-import com.maysk.cloner.ui.screens.ClonesScreen
 import com.maysk.cloner.ui.screens.CloneCardScreen
+import com.maysk.cloner.ui.screens.ClonesScreen
 import com.maysk.cloner.ui.screens.DashboardScreen
-import com.maysk.cloner.ui.screens.GoogleAuthScreen
 import com.maysk.cloner.ui.screens.PickAppScreen
 import com.maysk.cloner.ui.screens.SecurityScreen
 import com.maysk.cloner.ui.screens.SettingsScreen
@@ -51,9 +52,9 @@ import com.maysk.design.AppBackground
 import com.maysk.design.LocalMaysk
 
 @Composable
-fun AppRoot(container: AppContainer, requestVpnPermission: (((Boolean) -> Unit)) -> Unit) {
+fun AppRoot(container: AppContainer) {
     val settings by container.settings.settings.collectAsState()
-    val dark = androidx.compose.foundation.isSystemInDarkTheme()
+    val dark = isSystemInDarkTheme()
     val colors = remember(settings, dark) { buildColors(settings, dark) }
     val nav = remember { Nav() }
 
@@ -62,26 +63,14 @@ fun AppRoot(container: AppContainer, requestVpnPermission: (((Boolean) -> Unit))
             container = container,
             nav = nav,
             toast = { msg -> android.widget.Toast.makeText(container.appContext, msg, android.widget.Toast.LENGTH_SHORT).show() },
-            requestVpn = requestVpnPermission,
-            applyFirewall = {
-                // Если какому-то профилю нужен файрвол — запросим разрешение и запустим.
-                container.firewall.rebuildRules()
-                if (container.firewall.hasActiveRules()) {
-                    requestVpnPermission { ok -> if (ok) container.firewall.start() }
-                } else {
-                    container.firewall.stop()
-                }
-            },
         )
     }
 
     ClonerTheme(settings, colors) {
         AppBackground {
-            androidx.compose.runtime.CompositionLocalProvider(LocalActions provides actions) {
+            CompositionLocalProvider(LocalActions provides actions) {
                 Column(Modifier.fillMaxSize()) {
-                    Box(Modifier.weight(1f)) {
-                        RouteContent(nav.current)
-                    }
+                    Box(Modifier.weight(1f)) { RouteContent(nav.current) }
                     if (nav.stack.isEmpty()) BottomNav(nav)
                 }
                 UpdateDialogs(container)
@@ -101,7 +90,6 @@ private fun RouteContent(r: Route) {
         Route.Security -> SecurityScreen()
         Route.About -> AboutScreen()
         is Route.CloneCard -> CloneCardScreen(r.id)
-        is Route.GoogleAuth -> GoogleAuthScreen(r.id)
         is Route.Appearance -> AppearanceScreen(r.id)
     }
 }

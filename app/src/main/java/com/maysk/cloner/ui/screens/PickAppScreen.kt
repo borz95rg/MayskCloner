@@ -28,7 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.maysk.cloner.data.Apps
-import com.maysk.cloner.data.CloneGoogleSettings
+import com.maysk.cloner.data.CloneProfile
 import com.maysk.cloner.data.InstalledApp
 import com.maysk.cloner.ui.AppIcon
 import com.maysk.cloner.ui.LocalActions
@@ -64,7 +64,7 @@ fun PickAppScreen() {
                     items(filtered, key = { it.packageName }) { app ->
                         AppPickRow(app, already = app.packageName in existing) {
                             val id = "clone_${System.currentTimeMillis()}"
-                            val clone = CloneGoogleSettings(
+                            val clone = CloneProfile(
                                 cloneId = id, packageName = app.packageName, appLabel = app.label,
                                 cloneName = "${app.label} Клон 1",
                             )

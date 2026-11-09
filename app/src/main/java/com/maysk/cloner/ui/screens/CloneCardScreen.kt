@@ -13,7 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Backup
 import androidx.compose.material.icons.rounded.Delete
-import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.AddToHomeScreen
+import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material3.Icon
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.maysk.cloner.data.Apps
+import com.maysk.cloner.data.CloneManager
 import com.maysk.cloner.ui.AppIcon
 import com.maysk.cloner.ui.LocalActions
 import com.maysk.cloner.ui.NavRow
@@ -79,28 +81,38 @@ fun CloneCardScreen(cloneId: String) {
 
             Spacer(Modifier.height(16.dp))
             NavRow(Icons.Rounded.PlayArrow, "Запустить") {
-                if (!Apps.launch(context, clone.packageName)) a.toast("Приложение не установлено")
+                if (!CloneManager.launch(context, clone.packageName)) a.toast("Приложение не установлено")
             }
             Spacer(Modifier.height(10.dp))
-            NavRow(Icons.Rounded.AccountCircle, "Google и авторизация") { a.nav.push(Route.GoogleAuth(cloneId)) }
+            NavRow(Icons.Rounded.ContentCopy, "Клонировать (встроенное)") {
+                when (CloneManager.openSystemClone(context, clone.packageName)) {
+                    CloneManager.OpenResult.OPENED_CLONE_SETTINGS -> a.toast("Найдите «${clone.appLabel}» в списке и включите клон")
+                    CloneManager.OpenResult.OPENED_APP_INFO -> a.toast("Откройте пункт клонирования в «О приложении»")
+                    CloneManager.OpenResult.FAILED -> a.toast("На этом телефоне встроенное клонирование не найдено")
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            NavRow(Icons.Rounded.AddToHomeScreen, "Ярлык на рабочий стол") {
+                val ok = CloneManager.createShortcut(context, clone.packageName, clone.cloneName.ifBlank { clone.appLabel })
+                a.toast(if (ok) "Подтвердите добавление ярлыка" else "Не удалось создать ярлык")
+            }
             Spacer(Modifier.height(10.dp))
             NavRow(Icons.Rounded.Palette, "Оформление") { a.nav.push(Route.Appearance(cloneId)) }
             Spacer(Modifier.height(10.dp))
             NavRow(Icons.Rounded.Backup, "Резервная копия") { a.nav.selectTab(2) }
             Spacer(Modifier.height(10.dp))
-            NavRow(Icons.Rounded.Delete, "Удалить клон", tint = Color(0xFFEF4444)) { confirmDelete = true }
+            NavRow(Icons.Rounded.Delete, "Удалить профиль", tint = Color(0xFFEF4444)) { confirmDelete = true }
             Spacer(Modifier.height(24.dp))
         }
     }
 
     if (confirmDelete) ConfirmDialog(
-        "Удалить клон?",
-        "Будут удалены только настройки этого клона «${clone.cloneName.ifBlank { clone.appLabel }}». Само приложение и его данные не затрагиваются.",
+        "Удалить профиль?",
+        "Будут удалены только настройки этого клона «${clone.cloneName.ifBlank { clone.appLabel }}». Само приложение, его клон и данные не затрагиваются.",
         onDismiss = { confirmDelete = false },
         onConfirm = {
             confirmDelete = false
             a.container.settings.removeClone(cloneId)
-            a.applyFirewall()
             a.nav.pop()
         },
     )

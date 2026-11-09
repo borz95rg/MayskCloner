@@ -16,7 +16,6 @@ sealed interface Route {
     data object Security : Route
     data object About : Route
     data class CloneCard(val id: String) : Route
-    data class GoogleAuth(val id: String) : Route
     data class Appearance(val id: String) : Route
 }
 
@@ -45,10 +44,6 @@ class UiActions(
     val container: AppContainer,
     val nav: Nav,
     val toast: (String) -> Unit,
-    /** Запросить системное разрешение VPN, затем выполнить действие. */
-    val requestVpn: ((Boolean) -> Unit) -> Unit,
-    /** Применить настройки файрвола (с запросом разрешения при необходимости). */
-    val applyFirewall: () -> Unit,
 )
 
 val LocalActions = staticCompositionLocalOf<UiActions> { error("UiActions not provided") }

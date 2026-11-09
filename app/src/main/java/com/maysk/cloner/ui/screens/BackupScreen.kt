@@ -49,7 +49,7 @@ fun BackupScreen() {
     val importer = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             val n = Backup.import(context, a.container.settings, uri)
-            if (n >= 0) { a.applyFirewall(); a.toast("Восстановлено профилей: $n") } else a.toast("Не удалось прочитать файл")
+            if (n >= 0) { a.toast("Восстановлено профилей: $n") } else a.toast("Не удалось прочитать файл")
         }
     }
 

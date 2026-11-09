@@ -1,7 +1,6 @@
 package com.maysk.cloner.data
 
 import android.content.Context
-import com.maysk.cloner.engine.GoogleMode
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +17,13 @@ enum class ThemePreset(val title: String, val subtitle: String) {
 
 enum class LabelStyle(val title: String) { DEFAULT("По умолчанию"), CLASSIC("Классический"), MODERN3D("3D стиль"), NEON("Неоновый") }
 
+/** Способ клонирования. */
+enum class CloneMethod(val title: String, val hint: String) {
+    SYSTEM("Клонирование телефона", "Встроенная функция производителя (Dual Apps / App Twin)"),
+    WORK_PROFILE("Рабочий профиль", "Отдельное пространство Android"),
+    SHORTCUT("Только ярлык", "Быстрый запуск с рабочего стола"),
+}
+
 /** Общие настройки приложения. */
 data class AppSettings(
     val theme: ThemePreset = ThemePreset.PURPLE,
@@ -25,39 +31,25 @@ data class AppSettings(
     val cardAlpha: Float = 0.1f,
     val corner: Int = 22,
     val fontScale: Float = 1f,
-    // Безопасность
     val appLock: Boolean = false,
     val appLockPin: String = "",
     val hideClones: Boolean = false,
     val confirmDelete: Boolean = true,
     val protectBackups: Boolean = true,
     val separateData: Boolean = true,
-    // Обновления
     val autoUpdateCheck: Boolean = true,
     val customUpdateRepo: String = "",
 )
 
-/**
- * Настройки Google и авторизации для одного профиля (клона). Структура из ТЗ, раздел 6.
- * Хранится отдельно от данных исходного приложения.
- */
-data class CloneGoogleSettings(
+/** Профиль клона: ссылка на установленное приложение + оформление ярлыка. */
+data class CloneProfile(
     val cloneId: String,
     val packageName: String,
     val appLabel: String,
     val cloneName: String,
-    val googleMode: GoogleMode = GoogleMode.STANDARD,
-    val autoGoogleSignIn: Boolean = true,
-    val microG: Boolean = true,
-    val playGames: Boolean = true,
-    val externalBrowser: Boolean = true,
-    val googlePlayRedirect: Boolean = true,
-    val preserveGameData: Boolean = true,
-    val preserveLogin: Boolean = true,
-    // Оформление
+    val method: CloneMethod = CloneMethod.SYSTEM,
     val labelStyle: LabelStyle = LabelStyle.DEFAULT,
     val addToHome: Boolean = true,
-    val iconUri: String = "",
 )
 
 class SettingsStore(context: Context) {
@@ -69,19 +61,19 @@ class SettingsStore(context: Context) {
     val current: AppSettings get() = _settings.value
 
     private val _clones = MutableStateFlow(loadClones())
-    val clones: StateFlow<List<CloneGoogleSettings>> = _clones.asStateFlow()
+    val clones: StateFlow<List<CloneProfile>> = _clones.asStateFlow()
 
     fun update(transform: (AppSettings) -> AppSettings) {
         _settings.value = transform(_settings.value)
         persist()
     }
 
-    fun addClone(c: CloneGoogleSettings) {
+    fun addClone(c: CloneProfile) {
         _clones.value = _clones.value.filterNot { it.cloneId == c.cloneId } + c
         persistClones()
     }
 
-    fun updateClone(id: String, transform: (CloneGoogleSettings) -> CloneGoogleSettings) {
+    fun updateClone(id: String, transform: (CloneProfile) -> CloneProfile) {
         _clones.value = _clones.value.map { if (it.cloneId == id) transform(it) else it }
         persistClones()
     }
@@ -91,11 +83,11 @@ class SettingsStore(context: Context) {
         persistClones()
     }
 
-    fun clone(id: String): CloneGoogleSettings? = _clones.value.firstOrNull { it.cloneId == id }
+    fun clone(id: String): CloneProfile? = _clones.value.firstOrNull { it.cloneId == id }
 
     /** Полный экспорт настроек и профилей в JSON (для резервной копии). */
     fun exportJson(): String = JSONObject().apply {
-        put("version", 1)
+        put("version", 2)
         put("settings", toJson(_settings.value))
         put("clones", JSONArray().also { arr -> _clones.value.forEach { arr.put(cloneToJson(it)) } })
     }.toString()
@@ -125,7 +117,7 @@ class SettingsStore(context: Context) {
         fromJson(JSONObject(file.readText()))
     }.getOrDefault(AppSettings())
 
-    private fun loadClones(): List<CloneGoogleSettings> = runCatching {
+    private fun loadClones(): List<CloneProfile> = runCatching {
         if (!clonesFile.exists()) return emptyList()
         val arr = JSONArray(clonesFile.readText())
         (0 until arr.length()).map { cloneFromJson(arr.getJSONObject(it)) }
@@ -158,32 +150,21 @@ class SettingsStore(context: Context) {
         )
     }
 
-    private fun cloneToJson(c: CloneGoogleSettings) = JSONObject().apply {
+    private fun cloneToJson(c: CloneProfile) = JSONObject().apply {
         put("cloneId", c.cloneId); put("packageName", c.packageName); put("appLabel", c.appLabel); put("cloneName", c.cloneName)
-        put("googleMode", c.googleMode.name); put("autoGoogleSignIn", c.autoGoogleSignIn); put("microG", c.microG)
-        put("playGames", c.playGames); put("externalBrowser", c.externalBrowser); put("googlePlayRedirect", c.googlePlayRedirect)
-        put("preserveGameData", c.preserveGameData); put("preserveLogin", c.preserveLogin)
-        put("labelStyle", c.labelStyle.name); put("addToHome", c.addToHome); put("iconUri", c.iconUri)
+        put("method", c.method.name); put("labelStyle", c.labelStyle.name); put("addToHome", c.addToHome)
     }
 
-    private fun cloneFromJson(o: JSONObject): CloneGoogleSettings {
-        val d = CloneGoogleSettings("", "", "", "")
-        return CloneGoogleSettings(
+    private fun cloneFromJson(o: JSONObject): CloneProfile {
+        val d = CloneProfile("", "", "", "")
+        return CloneProfile(
             cloneId = o.optString("cloneId"),
             packageName = o.optString("packageName"),
             appLabel = o.optString("appLabel"),
             cloneName = o.optString("cloneName"),
-            googleMode = enumOr(o.optString("googleMode"), d.googleMode),
-            autoGoogleSignIn = o.optBoolean("autoGoogleSignIn", d.autoGoogleSignIn),
-            microG = o.optBoolean("microG", d.microG),
-            playGames = o.optBoolean("playGames", d.playGames),
-            externalBrowser = o.optBoolean("externalBrowser", d.externalBrowser),
-            googlePlayRedirect = o.optBoolean("googlePlayRedirect", d.googlePlayRedirect),
-            preserveGameData = o.optBoolean("preserveGameData", d.preserveGameData),
-            preserveLogin = o.optBoolean("preserveLogin", d.preserveLogin),
+            method = enumOr(o.optString("method"), d.method),
             labelStyle = enumOr(o.optString("labelStyle"), d.labelStyle),
             addToHome = o.optBoolean("addToHome", d.addToHome),
-            iconUri = o.optString("iconUri", d.iconUri),
         )
     }
 

@@ -24,7 +24,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.maysk.cloner.data.CloneGoogleSettings
+import com.maysk.cloner.data.CloneProfile
 import com.maysk.cloner.data.LabelStyle
 import com.maysk.cloner.ui.AppIcon
 import com.maysk.cloner.ui.LocalActions
@@ -43,7 +43,7 @@ fun AppearanceScreen(cloneId: String) {
     val clone = clones.firstOrNull { it.cloneId == cloneId } ?: run { a.nav.pop(); return }
     var name by remember { mutableStateOf(clone.cloneName) }
 
-    fun edit(transform: (CloneGoogleSettings) -> CloneGoogleSettings) = a.container.settings.updateClone(cloneId, transform)
+    fun edit(transform: (CloneProfile) -> CloneProfile) = a.container.settings.updateClone(cloneId, transform)
 
     Column(Modifier.fillMaxSize()) {
         TopBar("Оформление", onBack = { a.nav.pop() })
@@ -65,6 +65,16 @@ fun AppearanceScreen(cloneId: String) {
                 value = name, onValueChange = { name = it }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
+            Spacer(Modifier.size(18.dp))
+            Text("Способ клонирования", color = c.text, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.size(10.dp))
+            ChoiceChipRow(
+                com.maysk.cloner.data.CloneMethod.entries.map { it.title },
+                com.maysk.cloner.data.CloneMethod.entries.indexOf(clone.method),
+                { edit { cl -> cl.copy(method = com.maysk.cloner.data.CloneMethod.entries[it]) } },
+            )
+            Spacer(Modifier.size(6.dp))
+            Text(clone.method.hint, color = c.textDim, style = MaterialTheme.typography.bodySmall)
             Spacer(Modifier.size(18.dp))
             Text("Стиль ярлыка", color = c.text, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.size(10.dp))
